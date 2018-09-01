@@ -1,0 +1,4 @@
+qt/qt_libYinchengCoinqt_a-qrc_YinchengCoin.o: qt/qrc_YinchengCoin.cpp \
+ /usr/include/stdc-predef.h
+
+/usr/include/stdc-predef.h:

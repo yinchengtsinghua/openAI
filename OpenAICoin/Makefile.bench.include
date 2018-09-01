@@ -1,0 +1,81 @@
+# Copyright (c) 2015-2016 The YinchengCoin Core developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+bin_PROGRAMS += bench/bench_YinchengCoin
+BENCH_SRCDIR = bench
+BENCH_BINARY = bench/bench_YinchengCoin$(EXEEXT)
+
+RAW_BENCH_FILES = \
+  bench/data/block413567.raw
+GENERATED_BENCH_FILES = $(RAW_BENCH_FILES:.raw=.raw.h)
+
+bench_bench_YinchengCoin_SOURCES = \
+  $(RAW_BENCH_FILES) \
+  bench/bench_YinchengCoin.cpp \
+  bench/bench.cpp \
+  bench/bench.h \
+  bench/checkblock.cpp \
+  bench/checkqueue.cpp \
+  bench/Examples.cpp \
+  bench/rollingbloom.cpp \
+  bench/crypto_hash.cpp \
+  bench/ccoins_caching.cpp \
+  bench/mempool_eviction.cpp \
+  bench/verify_script.cpp \
+  bench/base58.cpp \
+  bench/lockedpool.cpp \
+  bench/perf.cpp \
+  bench/perf.h \
+  bench/prevector.cpp
+
+nodist_bench_bench_YinchengCoin_SOURCES = $(GENERATED_BENCH_FILES)
+
+bench_bench_YinchengCoin_CPPFLAGS = $(AM_CPPFLAGS) $(YinchengCoin_INCLUDES) $(EVENT_CLFAGS) $(EVENT_PTHREADS_CFLAGS) -I$(builddir)/bench/
+bench_bench_YinchengCoin_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bench_bench_YinchengCoin_LDADD = \
+  $(LIBYinchengCoin_SERVER) \
+  $(LIBYinchengCoin_WALLET) \
+  $(LIBYinchengCoin_COMMON) \
+  $(LIBYinchengCoin_UTIL) \
+  $(LIBYinchengCoin_CONSENSUS) \
+  $(LIBYinchengCoin_CRYPTO) \
+  $(LIBLEVELDB) \
+  $(LIBLEVELDB_SSE42) \
+  $(LIBMEMENV) \
+  $(LIBSECP256K1) \
+  $(LIBUNIVALUE)
+
+if ENABLE_ZMQ
+bench_bench_YinchengCoin_LDADD += $(LIBYinchengCoin_ZMQ) $(ZMQ_LIBS)
+endif
+
+if ENABLE_WALLET
+bench_bench_YinchengCoin_SOURCES += bench/coin_selection.cpp
+endif
+
+bench_bench_YinchengCoin_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS)
+bench_bench_YinchengCoin_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+
+CLEAN_YinchengCoin_BENCH = bench/*.gcda bench/*.gcno $(GENERATED_BENCH_FILES)
+
+CLEANFILES += $(CLEAN_YinchengCoin_BENCH)
+
+bench/checkblock.cpp: bench/data/block413567.raw.h
+
+YinchengCoin_bench: $(BENCH_BINARY)
+
+bench: $(BENCH_BINARY) FORCE
+	$(BENCH_BINARY)
+
+YinchengCoin_bench_clean : FORCE
+	rm -f $(CLEAN_YinchengCoin_BENCH) $(bench_bench_YinchengCoin_OBJECTS) $(BENCH_BINARY)
+
+%.raw.h: %.raw
+	@$(MKDIR_P) $(@D)
+	@{ \
+	 echo "static unsigned const char $(*F)[] = {" && \
+	 $(HEXDUMP) -v -e '8/1 "0x%02x, "' -e '"\n"' $< | $(SED) -e 's/0x  ,//g' && \
+	 echo "};"; \
+	} > "$@.new" && mv -f "$@.new" "$@"
+	@echo "Generated $@"
